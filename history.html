@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our History</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #9870de;
+            color: #faf3f3;
+        }
+
+        .history-section {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 40px 30px;
+            background: #050505;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-section h2 {
+            font-size: 2.5rem;
+            color: #f7f5f5;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .history-section p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            color: #faf6f6;
+        }
+
+        .history-section p span {
+            font-weight: bold;
+            color: #9870de; /* Accent color for emphasis */
+        }
+
+        .timeline {
+            position: relative;
+            margin-top: 40px;
+            padding-left: 20px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #9870de;
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 5px;
+            width: 16px;
+            height: 16px;
+            background: #9870de;
+            border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 0 0 2px v#9870de;}
+
+        .timeline-item h3 {
+            margin: 0 0 5px;
+            font-size: 1.3rem;
+            color: #f5f1f1;
+        }
+
+        .timeline-item p {
+            margin: 0;
+            color: #fefafa;
+        }
+        
+    </style>
+</head>
+<body>
+    <section class="history-section">
+        <h2>Our History</h2>
+        <p>We have been on a journey to help businesses optimize profit and transform financial clarity since our inception. By turning complex financial data into actionable insights, we empower companies to make smarter, more profitable decisions.</p>
+        
+        <div class="timeline">
+            <div class="timeline-item">
+                <h3>2025 – Founded</h3>
+                <p>Our company started with a mission to help businesses achieve maximum financial clarity and profitability.</p>
+            </div>
+            <div class="timeline-item">
+                <h3>2025 – First Milestone</h3>
+                <p>We successfully launched our proprietary analytics platform, enabling smarter data-driven decisions for small businesses. </p>
+            </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

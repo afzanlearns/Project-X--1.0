@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Profit & Loss — Analyzer (Dark Mode + Charts + PDF)</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- html2pdf (bundled html2canvas + jspdf) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f7f8fb; --card:#fff; --muted:#6b7280; --accent:#9870de; --text:#0b1220;
+      --success:#16a34a; --danger:#dc2626;
+    }
+    [data-theme="dark"]{
+      --bg:#0b0f17; --card:#0f1724; --muted:#9aa4b2; --accent:#7c3aed; --text:#e6eef8;
+    }
+    *{box-sizing:border-box;scroll-behavior:smooth}
+    html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;line-height:1.4;background:var(--bg);margin:0;padding:0;color:var(--text);background-color:#9870de;}
+
+    /* NAV */
+    nav{
+      width:100%; background:var(--card); padding:12px 20px; box-shadow:0 2px 10px rgba(0,0,0,0.06);
+      position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:18px;
+    }
+    .nav-left{display:flex; gap:50px; align-items:center}
+    .brand{font-weight:700}
+    .nav-links{display:flex; gap:12px; list-style:none; margin:0; padding:0}
+    .nav-links a{color:var(--text); text-decoration:none; font-weight:500}
+    .nav-links a:hover{color:var(--accent)}
+    .spacer{flex:1}
+
+    .container{max-width:1050px;margin:28px auto;padding:0 18px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 22px rgba(16,24,40,.06)}
+    h1{font-size:20px;margin:0 0 10px}
+    p.lead{color:var(--muted);margin:0 0 16px}
+    form{display:grid;gap:14px}
+    fieldset{border:1px solid rgba(0,0,0,0.06);padding:12px;border-radius:8px}
+    legend{font-weight:600;padding:0 6px}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    label{display:block;font-size:13px;color:var(--text);margin-bottom:6px}
+    input,select,textarea,button{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:var(--text)}
+    input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+    .toggle-row{display:flex;gap:8px;align-items:center}
+    .row{display:flex;gap:8px}
+    .actions{display:flex;gap:8px;justify-content:flex-end}
+    .btn{cursor:pointer;background:var(--accent);color:white;border:1;padding:10px 14px;border-radius:10px;font-weight:600}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid;}
+    .btn.small{padding:6px 4px;font-size:12px}
+    .hide{display:none}
+    pre{background:transparent;border-radius:8px;padding:12px;overflow:auto;white-space:pre-wrap;color:var(--text)}
+    section{padding-top:72px;margin-top:-72px} /* anchor offset */
+
+    .analysis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .analysis-box{background:var(--card);padding:14px;border-radius:10px;border-left:4px solid var(--accent);box-shadow:0 4px 12px rgba(0,0,0,0.04)}
+    .muted-2{color:var(--muted);font-size:13px;margin-top:6px}
+
+    .charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    .chart-card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.04)}
+
+    .export-options{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .export-options label{display:flex;gap:6px;align-items:center;cursor:pointer}
+
+    @media (max-width:920px){
+      .grid{grid-template-columns:1fr}
+      .analysis-grid{grid-template-columns:1fr}
+      .charts-grid{grid-template-columns:1fr}
+      .nav-links{display:none}
+    }
+    .brand {
+  color: var(--title-color);
+  font-size: 15px;
+  
+  font-weight: 24px;
+  text-decoration: none;     /* removes underline */
+  cursor: pointer;    
+  font-family: Poppins, sans-serif;     /* normal cursor, not pointer */
+}
+.brand:hover {
+  color: var(--title-color); /* prevent color change on hover */
+}
+.login{
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 14px;
+  border-radius: px;
+  font-weight: 600;
+  cursor: pointer;
+}
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-left">
+      
+      <a href="main.html" class="brand">Monetrix</a>
+
+      <ul class="nav-links" aria-label="main navigation">
+        <li><a href="#input">Input</a></li>
+        <li><a href="#analytics">Analytics</a></li>
+        <li><a href="#graphs">Charts</a></li>
+        <li><a href="#output">Raw Output</a></li>
+      </ul>
+    </div>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button id="toggleTheme" class="btn ghost small">Dark mode</button>
+      <button id="exportPdfBtn" class="btn small">Export PDF</button>
+      <a href="login.html">
+  <button class="login" type="button">Login</button>
+</a>
+
+    </div>
+  </nav>
+
+  <!-- INPUT -->
+  <section id="input">
+    <div class="container">
+      <div class="card">
+        <h1>Profit & Loss — Input Form</h1>
+        <p class="lead">Enter numbers for a reporting period. Use Calculate to update charts & insights.</p>
+
+        <form id="plForm" onsubmit="return false;">
+          <fieldset>
+            <legend>Business details</legend>
+            <div class="grid">
+              <div>
+                <label>Business name <span class="small">(optional)</span></label>
+                <input type="text" id="businessName" placeholder="e.g., Sunny Bakery" />
+              </div>
+              <div>
+                <label>Reporting period</label>
+                <input type="text" id="period" placeholder="e.g., Jan 2025" />
+              </div>
+            </div>
+            <div style="margin-top:10px" class="row">
+              <div class="toggle-row">
+                <label style="margin:0 6px 0 0">Business type</label>
+                <select id="businessType">
+                  <option value="product">Product-based</option>
+                  <option value="service">Service-based</option>
+                  <option value="both">Both</option>
+                </select>
+              </div>
+              <div style="margin-left:auto" class="muted">Currency: <strong>INR</strong></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Income</legend>
+            <div class="grid">
+              <div>
+                <label>Total Sales</label>
+                <input type="number" step="0.01" min="0" id="totalSales" placeholder="0.00" />
+              </div>
+              <div>
+                <label>Service Income</label>
+                <input type="number" step="0.01" min="0" id="serviceIncome" placeholder="0.00" />
+              </div>
+              <div>
+                <label>Returns / Refunds</label>
+                <input type="number" step="0.01" min="0" id="refunds" placeholder="0.00" />
+              </div>
+              <div>
+                <label>Other Income</label>
+                <input type="number" step="0.01" min="0" id="otherIncome" placeholder="0.00" />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset id="directCostsField">
+            <legend>Direct Costs</legend>
+            <div id="productFields">
+              <div class="grid">
+                <div><label>Opening Stock</label><input type="number" id="openingStock" step="0.01" min="0" /></div>
+                <div><label>Purchases</label><input type="number" id="purchases" step="0.01" min="0" /></div>
+                <div><label>Direct Labor</label><input type="number" id="directLabor" step="0.01" min="0" /></div>
+                <div><label>Production Costs</label><input type="number" id="productionCosts" step="0.01" min="0" /></div>
+                <div><label>Inbound Shipping</label><input type="number" id="inboundShipping" step="0.01" min="0" /></div>
+                <div><label>Closing Stock</label><input type="number" id="closingStock" step="0.01" min="0" /></div>
+              </div>
+            </div>
+
+            <div id="serviceFields" class="hide" style="margin-top:12px">
+              <div class="grid">
+                <div><label>Service Labor Cost</label><input type="number" id="serviceLaborCost" step="0.01" min="0" /></div>
+                <div><label>Project Materials</label><input type="number" id="projectMaterials" step="0.01" min="0" /></div>
+                <div><label>Contractor Costs</label><input type="number" id="contractorCosts" step="0.01" min="0" /></div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Operating Expenses</legend>
+            <div class="grid grid-3">
+              <div><label>Office Supplies</label><input type="number" id="officeSupplies" /></div>
+              <div><label>Staff Salaries</label><input type="number" id="staffSalaries" /></div>
+              <div><label>Accounting / Legal Fees</label><input type="number" id="accountingFees" /></div>
+              <div><label>Advertising & Promotions</label><input type="number" id="advertising" /></div>
+              <div><label>Online Ads</label><input type="number" id="onlineAds" /></div>
+              <div><label>Sales Commissions</label><input type="number" id="salesCommissions" /></div>
+              <div><label>Utilities</label><input type="number" id="utilities" /></div>
+              <div><label>Internet / Phone</label><input type="number" id="internet" /></div>
+              <div><label>Rent</label><input type="number" id="rent" /></div>
+              <div><label>Delivery Charges</label><input type="number" id="deliveryCharges" /></div>
+              <div><label>Vehicle Costs</label><input type="number" id="vehicleCosts" /></div>
+              <div><label>Repairs</label><input type="number" id="repairs" /></div>
+              <div><label>Software Subscriptions</label><input type="number" id="softwareSubs" /></div>
+              <div><label>Bank Charges</label><input type="number" id="bankCharges" /></div>
+              <div><label>Miscellaneous</label><input type="number" id="miscCosts" /></div>
+              <div><label>Depreciation</label><input type="number" id="depreciation" /></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Loan & Finance Costs</legend>
+            <div class="grid">
+              <div><label>Loan Interest</label><input type="number" id="loanInterest" /></div>
+              <div><label>EMI Interest</label><input type="number" id="emiInterest" /></div>
+              <div><label>Credit Card Interest</label><input type="number" id="ccInterest" /></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Taxes</legend>
+            <div class="grid">
+              <div><label>Business Tax / Income Tax</label><input type="number" id="incomeTax" /></div>
+              <div><label>GST / VAT Collected</label><input type="number" id="gstCollected" /></div>
+            </div>
+          </fieldset>
+
+          <div class="actions">
+            <button type="button" id="calculateBtn" class="btn">Calculate</button>
+            <button type="button" id="downloadJson" class="btn ghost">Download JSON</button>
+          </div>
+
+          <details style="margin-top:12px">
+            <summary>Raw output (click after calculate)</summary>
+            <pre id="rawOutput">No data yet.</pre>
+          </details>
+        </form>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section id="analytics">
+    <div class="container">
+      <h1>Analytics & Insights</h1>
+      <div class="analysis-grid" id="insightsArea">
+        <div class="analysis-box">Calculate to view insights.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHARTS -->
+  <section id="graphs">
+    <div class="container">
+      <h1>Charts</h1>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h4>Profit Trend (Gross vs Net)</h4>
+          <canvas id="profitTrend"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Revenue vs Expenses</h4>
+          <canvas id="revExpChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Expense Breakdown</h4>
+          <canvas id="expPie"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Cost Distribution (Donut)</h4>
+          <canvas id="costDonut"></canvas>
+        </div>
+        <div class="chart-card" style="grid-column:1 / -1">
+          <h4>Net Profit Margin Gauge</h4>
+          <canvas id="marginGauge" style="max-height:220px"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RAW OUTPUT -->
+  <section id="output">
+    <div class="container">
+      <h1>Raw Output</h1>
+      <pre id="rawOutputBottom">No data yet.</pre>
+    </div>
+  </section>
+
+  <!-- HIDDEN: Export Options modal area (simple inline control) -->
+  <div style="position:fixed;right:18px;bottom:18px;z-index:60;">
+    <div class="card" style="width:300px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Export PDF — Select</strong>
+      </div>
+      <div style="margin-top:10px" class="export-options">
+        <label><input type="checkbox" id="exportInputs" checked /> Inputs</label>
+        <label><input type="checkbox" id="exportSummary" checked /> Summary</label>
+        <label><input type="checkbox" id="exportCharts" checked /> Charts</label>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="doExportPdf" class="btn small">Export Selected</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------------------
+    // THEME (dark/light) with persistence
+    // ---------------------------
+    const themeBtn = document.getElementById('toggleTheme');
+    const preferred = localStorage.getItem('monetrix-theme') || 'light';
+    setTheme(preferred);
+
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+      localStorage.setItem('monetrix-theme', next);
+    });
+
+    function setTheme(t){
+      if(t === 'dark'){ document.documentElement.setAttribute('data-theme','dark'); themeBtn.textContent = 'Light mode' }
+      else { document.documentElement.removeAttribute('data-theme'); themeBtn.textContent = 'Dark mode' }
+    }
+
+    // ---------------------------
+    // Field toggles
+    // ---------------------------
+    const businessType = document.getElementById('businessType');
+    const productFields = document.getElementById('productFields');
+    const serviceFields = document.getElementById('serviceFields');
+
+    function toggleFields(){
+      const val = businessType.value;
+      if(val === 'product'){ productFields.classList.remove('hide'); serviceFields.classList.add('hide'); }
+      else if(val === 'service'){ productFields.classList.add('hide'); serviceFields.classList.remove('hide'); }
+      else { productFields.classList.remove('hide'); serviceFields.classList.remove('hide'); }
+    }
+    businessType.addEventListener('change', toggleFields);
+    toggleFields();
+
+    // ---------------------------
+    // Helpers
+    // ---------------------------
+    function n(id){ const el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; }
+    function s(id){ const el = document.getElementById(id); return el ? el.value : ''; }
+    function round2(x){ return Math.round((x + Number.EPSILON) * 100) / 100; }
+
+    // ---------------------------
+    // State
+    // ---------------------------
+    let lastOutput = null;
+    let charts = {};
+
+    // ---------------------------
+    // Main calculation logic (Calculate updates insights + charts + raw)
+    // ---------------------------
+    document.getElementById('calculateBtn').addEventListener('click', () => {
+      // gather numeric inputs
+      const fields = Array.from(document.querySelectorAll('input')).filter(i => i.type === 'number' || i.type === 'text');
+      const data = {};
+      fields.forEach(i => {
+        if(i.type === 'number') data[i.id] = parseFloat(i.value) || 0;
+        else data[i.id] = i.value || '';
+      });
+
+      // Compute revenue & costs
+      const netRevenue = (data.totalSales || 0) + (data.serviceIncome || 0) + (data.otherIncome || 0) - (data.refunds || 0);
+
+      const cogs = (data.openingStock || 0) + (data.purchases || 0) + (data.directLabor || 0) + (data.productionCosts || 0) + (data.inboundShipping || 0) - (data.closingStock || 0);
+
+      const directServiceCosts = (data.serviceLaborCost || 0) + (data.projectMaterials || 0) + (data.contractorCosts || 0);
+      const totalDirect = Math.max(0, cogs + directServiceCosts);
+
+      const operatingExpenses =
+        (data.officeSupplies || 0) + (data.staffSalaries || 0) + (data.accountingFees || 0) +
+        (data.advertising || 0) + (data.onlineAds || 0) + (data.salesCommissions || 0) +
+        (data.utilities || 0) + (data.internet || 0) + (data.rent || 0) + (data.deliveryCharges || 0) +
+        (data.vehicleCosts || 0) + (data.repairs || 0) + (data.softwareSubs || 0) + (data.bankCharges || 0) +
+        (data.miscCosts || 0) + (data.depreciation || 0);
+
+      const financeCosts = (data.loanInterest || 0) + (data.emiInterest || 0) + (data.ccInterest || 0);
+
+      const profitBeforeTax = netRevenue - totalDirect - operatingExpenses - financeCosts;
+      const netProfit = profitBeforeTax - (data.incomeTax || 0);
+      const grossProfit = netRevenue - totalDirect;
+
+      const results = {
+        netRevenue: round2(netRevenue),
+        totalDirect: round2(totalDirect),
+        grossProfit: round2(grossProfit),
+        operatingExpenses: round2(operatingExpenses),
+        financeCosts: round2(financeCosts),
+        profitBeforeTax: round2(profitBeforeTax),
+        incomeTax: round2(data.incomeTax || 0),
+        netProfit: round2(netProfit),
+        netProfitMargin: round2(netRevenue ? (netProfit / netRevenue) * 100 : 0)
+      };
+
+      lastOutput = {
+        meta: {
+          businessName: s('businessName'),
+          period: s('period'),
+          businessType: s('businessType'),
+          currency: 'INR',
+          generatedAt: new Date().toISOString()
+        },
+        inputs: data,
+        results: results
+      };
+
+      // display raw
+      document.getElementById('rawOutput').textContent = JSON.stringify(lastOutput, null, 2);
+      document.getElementById('rawOutputBottom').textContent = JSON.stringify(lastOutput, null, 2);
+
+      // insights & charts
+      renderInsights(lastOutput);
+      renderCharts(lastOutput);
+    });
+
+    // ---------------------------
+    // Export JSON
+    // ---------------------------
+    document.getElementById('downloadJson').addEventListener('click', () => {
+      if(!lastOutput){ alert('Please Calculate first'); return; }
+      const blob = new Blob([JSON.stringify(lastOutput, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'pl-data.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // ---------------------------
+    // Insights rendering
+    // ---------------------------
+    function renderInsights(out){
+      const area = document.getElementById('insightsArea');
+      area.innerHTML = '';
+      const r = out.results;
+
+      const createBox = (title, body) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'analysis-box';
+        wrapper.innerHTML = `<strong>${title}</strong><div class="muted-2">${body}</div>`;
+        return wrapper;
+      };
+
+      area.appendChild(createBox('Net Revenue', `₹ ${r.netRevenue}`));
+      area.appendChild(createBox('Gross Profit', `₹ ${r.grossProfit}`));
+      area.appendChild(createBox('Operating Expenses', `₹ ${r.operatingExpenses}`));
+      area.appendChild(createBox('Net Profit', `₹ ${r.netProfit}`));
+
+      // contextual note
+      const note = document.createElement('div');
+      note.className = 'analysis-box';
+      let text = (r.netProfit > 0) ? `Good — net profit margin ${r.netProfitMargin}%` : `Warning — negative net profit (${r.netProfit})`;
+      note.innerHTML = `<strong>Quick insight</strong><div class="muted-2">${text}</div>`;
+      area.appendChild(note);
+    }
+
+    // ---------------------------
+    // Charts rendering
+    // ---------------------------
+    function renderCharts(out){
+      const r = out.results;
+      const inputs = out.inputs;
+
+      // prepare data for expense breakdown: pick main categories
+      const expenseParts = {
+        'Direct Costs': r.totalDirect,
+        'Operating Expenses': r.operatingExpenses,
+        'Finance Costs': r.financeCosts,
+        'Taxes': r.incomeTax
+      };
+
+      // prepare time-like Profit Trend: we don't have historical data, so show gross vs net as points
+      const profitTrendData = [r.grossProfit, r.netProfit];
+
+      // destroy previous
+      Object.values(charts).forEach(c => { try{ c.destroy(); }catch(e){} });
+      charts = {};
+
+      // Profit Trend (line)
+      const ctx1 = document.getElementById('profitTrend').getContext('2d');
+      charts.profitTrend = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: ['Gross Profit','Net Profit'],
+          datasets: [{ label: 'Amount (₹)', data: profitTrendData, fill:false, tension:0.3 }]
+        },
+        options: { responsive:true, plugins:{legend:{display:false}} }
+      });
+
+      // Revenue vs Expenses (bar)
+      const ctx2 = document.getElementById('revExpChart').getContext('2d');
+      charts.revExpChart = new Chart(ctx2, {
+        type: 'bar',
+        data:{ labels:['Revenue','Direct','Operating','Finance','Tax'], datasets:[{ label:'₹', data:[r.netRevenue, r.totalDirect, r.operatingExpenses, r.financeCosts, r.incomeTax] }]},
+        options:{ responsive:true, plugins:{legend:{display:false}} }
+      });
+
+      // Expense Pie
+      const ctx3 = document.getElementById('expPie').getContext('2d');
+      charts.expPie = new Chart(ctx3, {
+        type:'pie',
+        data:{
+          labels: Object.keys(expenseParts),
+          datasets:[{ data: Object.values(expenseParts) }]
+        },
+        options:{ responsive:true }
+      });
+
+      // Donut: breakdown using a few expense inputs (operating major items)
+      const donutLabels = ['Staff Salaries','Advertising','Online Ads','Rent','Misc'];
+      const donutData = [
+        inputs.staffSalaries || 0,
+        inputs.advertising || 0,
+        inputs.onlineAds || 0,
+        inputs.rent || 0,
+        inputs.miscCosts || 0
+      ];
+      const ctx4 = document.getElementById('costDonut').getContext('2d');
+      charts.costDonut = new Chart(ctx4, {
+        type:'doughnut',
+        data:{ labels:donutLabels, datasets:[{ data: donutData }]},
+        options:{ responsive:true, plugins:{legend:{position:'bottom'}} }
+      });
+
+      // Gauge (doughnut styled)
+      const margin = Math.max(-100, Math.min(100, Math.round(r.netProfitMargin))); // clamp for display
+      const gaugeVal = Math.max(0, Math.min(100, r.netProfitMargin + 50)); // map to [0,100] roughly (for visual)
+      const ctx5 = document.getElementById('marginGauge').getContext('2d');
+      charts.marginGauge = new Chart(ctx5, {
+        type:'doughnut',
+        data:{ labels:['Margin','Remaining'], datasets:[{ data:[r.netProfitMargin > 0 ? r.netProfitMargin : 0, 100 - Math.max(0, Math.min(100, r.netProfitMargin)) ] }]},
+        options:{
+          responsive:true,
+          circumference: 180,
+          rotation: -90,
+          cutout: '70%',
+          plugins:{legend:{display:false}}
+        }
+      });
+    }
+
+    // ---------------------------
+    // PDF Export: build temp container with selected sections then html2pdf it
+    // ---------------------------
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const doExportPdf = document.getElementById('doExportPdf');
+
+    exportPdfBtn.addEventListener('click', () => {
+      // open the small export panel by focusing (we already have inline control) - scroll to it
+      window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+    });
+
+    doExportPdf.addEventListener('click', () => {
+      if(!lastOutput){ alert('Please Calculate first'); return; }
+      const includeInputs = document.getElementById('exportInputs').checked;
+      const includeSummary = document.getElementById('exportSummary').checked;
+      const includeCharts = document.getElementById('exportCharts').checked;
+
+      // prepare temp container
+      const temp = document.createElement('div');
+      temp.style.padding = '18px';
+      temp.style.background = getComputedStyle(document.documentElement).getPropertyValue('--card') || '#fff';
+      temp.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#000';
+      temp.style.fontFamily = 'Inter, Arial, sans-serif';
+
+      // header
+      const header = document.createElement('div');
+      header.innerHTML = `<h2>${lastOutput.meta.businessName || 'Business Report'}</h2><div style="color:gray">${lastOutput.meta.period || ''}</div>`;
+      temp.appendChild(header);
+
+      if(includeInputs){
+        const inputsPre = document.createElement('div');
+        inputsPre.style.marginTop='10px';
+        inputsPre.innerHTML = `<h3>Inputs</h3><pre>${JSON.stringify(lastOutput.inputs, null, 2)}</pre>`;
+        temp.appendChild(inputsPre);
+      }
+
+      if(includeSummary){
+        const sumBox = document.createElement('div');
+        sumBox.style.marginTop='10px';
+        sumBox.innerHTML = `<h3>Summary</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:6px;border:1px solid #ddd">Net Revenue</td><td style="padding:6px;border:1px solid #ddd">₹ ${lastOutput.results.netRevenue}</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Gross Profit</td><td style="padding:6px;border:1px solid #ddd">₹ ${lastOutput.results.grossProfit}</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Operating Expenses</td><td style="padding:6px;border:1px solid #ddd">₹ ${lastOutput.results.operatingExpenses}</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Finance Costs</td><td style="padding:6px;border:1px solid #ddd">₹ ${lastOutput.results.financeCosts}</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Net Profit</td><td style="padding:6px;border:1px solid #ddd">₹ ${lastOutput.results.netProfit}</td></tr>
+            <tr><td style="padding:6px;border:1px solid #ddd">Net Profit Margin</td><td style="padding:6px;border:1px solid #ddd">${lastOutput.results.netProfitMargin}%</td></tr>
+          </table>`;
+        temp.appendChild(sumBox);
+      }
+
+      if(includeCharts){
+        const chartsDiv = document.createElement('div');
+        chartsDiv.style.marginTop='12px';
+        chartsDiv.innerHTML = `<h3>Charts</h3>`;
+        // clone canvases as images
+        const canvases = ['profitTrend','revExpChart','expPie','costDonut','marginGauge'];
+        canvases.forEach(id => {
+          const c = document.getElementById(id);
+          try{
+            const img = new Image();
+            img.src = c.toDataURL('image/png');
+            img.style.maxWidth = '100%';
+            img.style.display = 'block';
+            img.style.marginTop = '8px';
+            chartsDiv.appendChild(img);
+          }catch(e){
+            // ignore if canvas not ready
+          }
+        });
+        temp.appendChild(chartsDiv);
+      }
+
+      // html2pdf options
+      const opt = {
+        margin:       10,
+        filename:     (lastOutput.meta.businessName ? lastOutput.meta.businessName.replace(/\s+/g,'_') : 'report') + '.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // export
+      html2pdf().set(opt).from(temp).save();
+    });
+
+    // also wire the top Export PDF button to the same action (opens the panel then triggers)
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+      // trigger the click on the floating panel button for convenience
+      document.getElementById('doExportPdf').click();
+    });
+
+    // ---------------------------
+    // Initial demo values (optional)
+    // ---------------------------
+    // (You can comment/remove these) - they help preview charts quickly
+    (function seedDemo(){
+      // only set demo if fields empty
+      if(!document.getElementById('totalSales').value){
+        document.getElementById('businessName').value = 'Sunny Bakery';
+        document.getElementById('period').value = 'Jan 2025';
+        document.getElementById('totalSales').value = 12000;
+        document.getElementById('serviceIncome').value = 0;
+        document.getElementById('refunds').value = 200;
+        document.getElementById('otherIncome').value = 150;
+
+        document.getElementById('openingStock').value = 1000;
+        document.getElementById('purchases').value = 3000;
+        document.getElementById('directLabor').value = 1200;
+        document.getElementById('productionCosts').value = 400;
+        document.getElementById('inboundShipping').value = 150;
+        document.getElementById('closingStock').value = 800;
+
+        document.getElementById('staffSalaries').value = 2000;
+        document.getElementById('advertising').value = 500;
+        document.getElementById('onlineAds').value = 300;
+        document.getElementById('rent').value = 1000;
+        document.getElementById('miscCosts').value = 150;
+        document.getElementById('loanInterest').value = 50;
+        document.getElementById('incomeTax').value = 200;
+      }
+    })();
+
+    // End of script
+  </script>
+
+</body>
+</html>
